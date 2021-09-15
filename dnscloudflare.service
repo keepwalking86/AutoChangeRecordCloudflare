@@ -1,0 +1,9 @@
+[Unit]
+Description = making network connection up
+After = network.target
+[Service]
+User = root
+WorkingDirectory=/path/to/script
+ExecStart=/bin/bash changerecord.sh start
+[Install]
+WantedBy = multi-user.target
