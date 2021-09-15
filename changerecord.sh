@@ -70,20 +70,23 @@ status_recover=recover
 OUTPUT="log.txt"
 # Assign the fd 3 to $OUTPUT file
 exec 3> $OUTPUT
+TIMESTAMP(){
+	echo $(date "+%Y-%m-%d %H:%M:%S")
+}
 
 i=0
 while true; do
 	query_bandwidth=$(curl -fs --data-urlencode "$(monitor_query)" $monitor_url | jq -r '.data.result[] | [.value[1] ] | @csv' |grep -o "[0-9.]\+")
 	#convert float to int
 	bandwidth=${query_bandwidth%.*}
-	echo "Current bandwidth: $bandwidth" >&3
+	echo "$(TIMESTAMP) Current bandwidth: $bandwidth" >&3
 	if [[ $bandwidth -ge $alert ]]; then
 		status=$(cat status_file.txt)
 		if [[ $status != 'alert' ]]; then
 			((i+=1))
-			echo "Number times of alert bandwidth: $i" >&3
+			echo "$(TIMESTAMP) Number times of alert bandwidth: $i" >&3
 			if [[ $i == 3 ]]; then
-				echo "Change cname to big CDN .." >&3
+				echo "$(TIMESTAMP) Change cname to big CDN .." >&3
 				#Change cname via Cloudflare API
 			curl -X PUT "https://api.cloudflare.com/client/v4/zones/$zone_id/dns_records/$record_id" \
      -H "X-Auth-Email: $auth_email" \
@@ -108,10 +111,10 @@ while true; do
 	else
 		i=0
 		status=$(cat status_file.txt)
-		echo "Current status: $status" >&3
-		echo "Bandwidth less than alert" >&3
+		echo "$(TIMESTAMP) Current status: $status" >&3
+		echo "$(TIMESTAMP) Bandwidth less than alert" >&3
 		if [[ $bandwidth -lt $recover ]] && [[ $status != 'recover' ]]; then
-			echo "Status change from alert to recover" >&3
+			echo "$(TIMESTAMP) Status change from alert to recover" >&3
 			#Recover cname to my CDN
 			curl -X PUT "https://api.cloudflare.com/client/v4/zones/$zone_id/dns_records/$record_id" \
      			-H "X-Auth-Email: $auth_email" \
